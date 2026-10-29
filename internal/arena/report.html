@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wizard Boardgame — Arena Balance Report</title>
+<style>
+:root{
+  --bg:#0b0e14; --panel:#141a24; --panel2:#1b2330; --panel3:#222c3c;
+  --line:#2a3547; --text:#dbe3f0; --muted:#8593aa;
+  --a:#7aa2ff; --b:#ffb066; --green:#57d98a; --red:#f06b6b; --yellow:#f0d45e;
+  --ink:#0b1428;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:radial-gradient(1200px 800px at 20% -10%, #162031 0%, var(--bg) 60%);
+  color:var(--text);
+  font-family:ui-sans-serif,system-ui,'Segoe UI',Roboto,sans-serif;
+  font-size:14px; line-height:1.45;
+}
+.wrap{max-width:1240px;margin:0 auto;padding:26px 20px 60px}
+a{color:var(--a)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#b9c7dd;font-size:12px}
+.muted{color:var(--muted)}
+.a{color:var(--a)} .b{color:var(--b)}
+h1{font-size:26px;margin:4px 0 6px;letter-spacing:.2px}
+h2{font-size:17px;margin:0;font-weight:650}
+h3{font-size:13px;margin:18px 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+p{margin:8px 0}
+.hero{margin-bottom:18px}
+.eyebrow{color:var(--muted);text-transform:uppercase;letter-spacing:1.6px;font-size:11px}
+.meta{color:var(--muted);font-size:12.5px}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 4px}
+.chip{border:1px solid var(--line);background:rgba(255,255,255,.03);border-radius:999px;padding:3px 10px;font-size:12px;color:#b9c7dd;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.chip.warn{border-color:rgba(240,212,94,.45);color:var(--yellow)}
+.toolbar{display:flex;gap:8px;margin-top:12px}
+button{font:inherit;color:#c8d5e8;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px 11px;cursor:pointer}
+button:hover{border-color:#3a4a63;background:var(--panel3)}
+.card{background:linear-gradient(180deg,var(--panel) 0%,#111722 100%);border:1px solid var(--line);border-radius:14px;padding:0;margin:14px 0;overflow:hidden}
+.card>.card-head{padding:16px 18px;display:flex;align-items:center;gap:10px;justify-content:space-between}
+details.card>summary{list-style:none;cursor:pointer;padding:15px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid transparent}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary::before{content:'▸';color:var(--muted);transition:transform .12s ease;display:inline-block}
+details.card[open]>summary::before{transform:rotate(90deg)}
+details.card[open]>summary{border-bottom-color:var(--line)}
+details.card>.body{padding:16px 18px}
+.badge{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11.5px;border:1px solid var(--line);white-space:nowrap}
+.badge.ok{border-color:rgba(87,217,138,.45);background:rgba(87,217,138,.12);color:#b9f4d0}
+.badge.warn{border-color:rgba(240,212,94,.45);background:rgba(240,212,94,.10);color:#f5e6a4}
+.badge.muted{color:var(--muted)}
+.badge.stats{border-color:rgba(122,162,255,.4);background:rgba(122,162,255,.10);color:#c3d5ff}
+.balance-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}
+.side-card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:rgba(255,255,255,.02)}
+.side-card.a{border-left:4px solid var(--a)}
+.side-card.b{border-left:4px solid var(--b)}
+.side-card.d{border-left:4px solid var(--muted)}
+.side-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.side-label small{text-transform:none;letter-spacing:0;color:#6f7f97}
+.big{font-size:34px;font-weight:700;line-height:1.15;margin-top:4px;font-variant-numeric:tabular-nums}
+.sub{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.barbox{margin:4px 0 2px}
+.bar{display:flex;height:24px;border-radius:7px;overflow:hidden;background:#0f1520;border:1px solid var(--line)}
+.bar .seg{height:100%;display:block}
+.bar .seg.a{background:linear-gradient(180deg,#8fb2ff,#6b95f5)}
+.bar .seg.b{background:linear-gradient(180deg,#ffc07d,#f09a45)}
+.bar .seg.d{background:#3b465a}
+.legend{display:flex;gap:16px;margin-top:8px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0}
+.dot.a{background:var(--a)} .dot.b{background:var(--b)} .dot.d{background:#3b465a}
+.note{color:var(--muted);font-size:12.5px;margin:10px 0 0}
+.grid{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.grid th,.grid td{padding:7px 9px;border-bottom:1px solid rgba(42,53,71,.7);text-align:left;vertical-align:middle}
+.grid thead th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.7px;border-bottom-color:var(--line)}
+.grid tbody tr:hover{background:rgba(255,255,255,.025)}
+.grid .num{text-align:right;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+.grid th.num{text-align:right}
+.grid tr:last-child td{border-bottom:none}
+.compact th,.compact td{padding:5px 8px}
+.minibar{height:7px;background:#0f1520;border-radius:4px;overflow:hidden;min-width:80px;border:1px solid rgba(42,53,71,.7)}
+.minibar span{display:block;height:100%;background:linear-gradient(90deg,#6b95f5,#8fb2ff)}
+.minibar.b span{background:linear-gradient(90deg,#f09a45,#ffc07d)}
+.minibar.g span{background:linear-gradient(90deg,#3fae6d,#57d98a)}
+.minibar.r span{background:linear-gradient(90deg,#c95656,#f06b6b)}
+.piece{width:17px;height:17px;vertical-align:-3.5px;color:#93a4bc}
+.piece.a{color:var(--a)} .piece.b{color:var(--b)}
+.piece.lg{width:21px;height:21px;vertical-align:-5px}
+.identity{display:inline-flex;align-items:center;gap:6px;text-transform:capitalize}
+.piece-cloud{display:flex;gap:18px;flex-wrap:wrap;margin:4px 0 12px}
+.piece-cloud .side-card{min-width:180px}
+.piece-row{display:flex;align-items:center;gap:8px;margin:6px 0;color:#c8d5e8}
+.piece-row .k{flex:1;color:var(--muted);font-size:12.5px}
+.piece-row .n{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.pair{border:1px solid var(--line);border-radius:12px;margin:10px 0;background:rgba(255,255,255,.015)}
+.pair>summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pair>summary::-webkit-details-marker{display:none}
+.pair>summary::before{content:'▸';color:var(--muted)}
+.pair[open]>summary::before{transform:rotate(90deg)}
+.pair-title{font-weight:650}
+.pair-meta{color:var(--muted);font-size:12.5px}
+.pair-body{padding:2px 14px 14px;border-top:1px solid var(--line)}
+.pair-sides{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0 6px;font-size:12.5px;color:var(--muted)}
+.bucket{display:grid;grid-template-columns:70px 1fr 220px;gap:10px;align-items:center;margin:7px 0}
+.bucket-label{color:var(--muted);font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.bucket-track{height:24px;background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.bucket-track .bar{height:100%;border:none;border-radius:0}
+.bucket-meta{color:var(--muted);font-size:11.5px;text-align:right;font-variant-numeric:tabular-nums}
+.grid tr.sub td:first-child{padding-left:24px;color:var(--muted)}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,.02)}
+.stat .k{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.7px}
+.stat .v{font-size:24px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}
+.stat .s{color:var(--muted);font-size:12px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.move-feature{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(260px,.65fr);gap:18px;align-items:start}
+.move-boards{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.move-board-label{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px}
+.board-svg{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:12px;background:#0e1219}
+.move-side h3{font-size:18px;margin:8px 0 4px;color:var(--text);text-transform:none;letter-spacing:0}
+.move-swing{font-size:38px;font-weight:700;line-height:1.1;margin:8px 0 2px;font-variant-numeric:tabular-nums;color:var(--yellow)}
+.move-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.move-metric{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:rgba(255,255,255,.02)}
+.move-metric .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.move-metric .v{font-size:17px;font-weight:650;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+@media (max-width:900px){.move-feature{grid-template-columns:1fr}}
+@media (max-width:620px){.move-boards{grid-template-columns:1fr}}
+@media (max-width:820px){.two{grid-template-columns:1fr}.bucket{grid-template-columns:60px 1fr}.bucket-meta{grid-column:2;text-align:left}}
+.matrix td.heat{text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;border-radius:4px}
+.matrix th{white-space:nowrap}
+label.sort{cursor:pointer;user-select:none}
+label.sort:hover{color:var(--text)}
+footer{color:var(--muted);font-size:12px;margin-top:26px;border-top:1px solid var(--line);padding-top:14px}
+footer strong{color:#c8d5e8}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="pc-pawn" viewBox="0 0 48 48">
+    <ellipse cx="24" cy="41" rx="14" ry="4" fill="rgba(0,0,0,.35)"/>
+    <rect x="15" y="31" width="18" height="8" rx="3.5" fill="currentColor" opacity=".72"/>
+    <circle cx="24" cy="21" r="10.5" fill="currentColor"/>
+    <circle cx="24" cy="21" r="10.5" fill="none" stroke="rgba(0,0,0,.42)" stroke-width="2"/>
+  </symbol>
+  <symbol id="pc-cannon" viewBox="0 0 48 48">
+    <ellipse cx="24" cy="41" rx="15" ry="4" fill="rgba(0,0,0,.35)"/>
+    <rect x="9" y="15" width="30" height="22" rx="6" fill="currentColor"/>
+    <rect x="11" y="17" width="26" height="18" rx="5" fill="none" stroke="rgba(0,0,0,.42)" stroke-width="2"/>
+    <rect x="23" y="21" width="18" height="8" rx="3.5" fill="rgba(0,0,0,.55)"/>
+    <rect x="31" y="23" width="8" height="4" rx="2" fill="currentColor" opacity=".85"/>
+  </symbol>
+  <symbol id="pc-wizard" viewBox="0 0 48 48">
+    <ellipse cx="24" cy="41" rx="14" ry="4" fill="rgba(0,0,0,.35)"/>
+    <path d="M17 17 L16 36 L32 36 L31 17 Z" fill="currentColor"/>
+    <path d="M17 17 L16 36 L32 36 L31 17 Z" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1.7"/>
+    <rect x="18" y="26" width="12" height="2.5" fill="rgba(0,0,0,.35)"/>
+    <rect x="16.5" y="33.2" width="15" height="1.7" fill="#f0d45e" opacity=".9"/>
+    <circle cx="24" cy="13.5" r="5" fill="#f0d7b8"/>
+    <path d="M21.5 16.6 C23 18.4 25 18.4 26.5 16.6 L24 18.8 Z" fill="#e8eef8"/>
+    <path d="M24 2.5 L30.5 13 L17.5 13 Z" fill="currentColor"/>
+    <rect x="16" y="12" width="16" height="3" rx="1.5" fill="currentColor"/>
+    <rect x="18.5" y="10" width="11" height="1.8" fill="#f0d45e" opacity=".9"/>
+    <line x1="34.5" y1="34" x2="34.5" y2="12" stroke="rgba(0,0,0,.55)" stroke-width="2.2"/>
+    <circle cx="34.5" cy="9" r="4.2" fill="#f0d45e" opacity=".28"/>
+    <circle cx="34.5" cy="9" r="2.3" fill="#f0d45e"/>
+  </symbol>
+</svg>
+
+<div class="wrap">
+<header class="hero">
+  <div class="eyebrow">Wizard Boardgame · AI arena</div>
+  <h1>Arena Balance Report</h1>
+  <div class="meta">Generated {{.Generated}} · source <code>{{.Source}}</code></div>
+  <div class="chips">
+    <span class="chip">depth {{.Config.MaxDepth}}</span>
+    <span class="chip">{{.Config.MaxTimeMs}} ms/move</span>
+    <span class="chip">{{if .Config.NoFilter}}filter off{{else}}filter on{{end}}</span>
+    <span class="chip">{{.Config.GamesPerPair}} games/pair</span>
+    {{if .Config.Paired}}<span class="chip">paired seeds</span>{{end}}
+    <span class="chip">{{.Runs}} runs</span>
+    {{if .StatsOnlyGames}}<span class="chip warn">{{.StatsOnlyGames}} stats-only games</span>{{end}}
+  </div>
+  <div class="toolbar">
+    <button type="button" data-expand>Expand all</button>
+    <button type="button" data-collapse>Collapse all</button>
+  </div>
+</header>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Side balance</h2>
+    <span class="badge {{.VerdictClass}}">{{.Verdict}}</span>
+  </div>
+  <div class="body">
+  {{if .Balance.Games}}
+    <div class="balance-grid">
+      <div class="side-card a">
+        <div class="side-label">Player A <small>moves first</small></div>
+        <div class="big a">{{.Balance.AWin}}</div>
+        <div class="sub">{{pct .Balance.AWin .Balance.Games}} · {{ci .Balance.AWin .Balance.Games}}</div>
+      </div>
+      <div class="side-card b">
+        <div class="side-label">Player B <small>second</small></div>
+        <div class="big b">{{.Balance.BWin}}</div>
+        <div class="sub">{{pct .Balance.BWin .Balance.Games}} · {{ci .Balance.BWin .Balance.Games}}</div>
+      </div>
+      <div class="side-card d">
+        <div class="side-label">Draws <small>stalemate</small></div>
+        <div class="big">{{.Balance.Draw}}</div>
+        <div class="sub">{{pct .Balance.Draw .Balance.Games}} of {{.Balance.Games}} games</div>
+      </div>
+    </div>
+    <div class="barbox">
+      <div class="bar" role="img" aria-label="Player A, Player B and draw shares">
+        <span class="seg a" style="width:{{bar .Balance.AWin .Balance.Games}}%"></span>
+        <span class="seg b" style="width:{{bar .Balance.BWin .Balance.Games}}%"></span>
+        <span class="seg d" style="width:{{bar .Balance.Draw .Balance.Games}}%"></span>
+      </div>
+      <div class="legend">
+        <span><span class="dot a"></span>Player A {{pct .Balance.AWin .Balance.Games}}</span>
+        <span><span class="dot b"></span>Player B {{pct .Balance.BWin .Balance.Games}}</span>
+        <span><span class="dot d"></span>Draw {{pct .Balance.Draw .Balance.Games}}</span>
+      </div>
+    </div>
+    <p class="note">{{.SampleNote}}</p>
+  {{else}}
+    <p class="note">No side data in this file yet. Run the arena after the side-stats upgrade to populate it.</p>
+  {{end}}
+  </div>
+</section>
+
+<details class="card" open>
+  <summary><h2>Player A vs Player B</h2><span class="muted">event profile per side</span></summary>
+  <div class="body">
+    <p class="note">Counts are summed over every game each side played in this file. Per-game rates are in the last two rows.</p>
+    {{template "sideTable" .BySide}}
+  </div>
+</details>
+
+<details class="card" open>
+  <summary><h2>Endgame &amp; tempo</h2></summary>
+  <div class="body">
+    {{$e := .Endgame}}
+    {{if $e.Games}}
+      <div class="statgrid">
+        <div class="stat"><div class="k">Games</div><div class="v">{{$e.Games}}</div><div class="s">{{$e.Plies}} plies total</div></div>
+        <div class="stat"><div class="k">Avg length</div><div class="v">{{avg $e.Plies $e.Games}}</div><div class="s">plies per game</div></div>
+        <div class="stat"><div class="k">Stalemates</div><div class="v">{{pct $e.Stalemates $e.Games}}</div><div class="s">{{$e.Stalemates}} games hit MaxPly</div></div>
+        <div class="stat"><div class="k">First blood</div><div class="v">{{pct $e.FirstKillWins $e.FirstKillDecided}}</div><div class="s">first-kill side also won</div></div>
+        <div class="stat"><div class="k">Avg first kill</div><div class="v">{{avg $e.FirstKillPlies (sub $e.Games $e.NoFirstKill)}}</div><div class="s">ply of the first capture</div></div>
+        <div class="stat"><div class="k">Avg first wizard kill</div><div class="v">{{avg $e.FirstWizardPlies (sub $e.Games $e.NoFirstWizardKill)}}</div><div class="s">ply of the first wizard loss</div></div>
+        <div class="stat"><div class="k">First wizard kill</div><div class="v">{{pct $e.FirstWizardWins $e.FirstWizardDecided}}</div><div class="s">first-wizard-kill side won</div></div>
+      </div>
+
+      <div class="two" style="margin-top:16px">
+        <div>
+          <h3>First blood</h3>
+          <div class="barbox">
+            <div class="bar">
+              <span class="seg a" style="width:{{bar $e.FirstKillA (sub $e.Games $e.NoFirstKill)}}%"></span>
+              <span class="seg b" style="width:{{bar $e.FirstKillB (sub $e.Games $e.NoFirstKill)}}%"></span>
+            </div>
+            <div class="legend">
+              <span><span class="dot a"></span>Player A {{$e.FirstKillA}}</span>
+              <span><span class="dot b"></span>Player B {{$e.FirstKillB}}</span>
+              <span>no kill {{$e.NoFirstKill}}</span>
+            </div>
+          </div>
+          <p class="note">The side that drew first blood won {{pct $e.FirstKillWins $e.FirstKillDecided}} of decided games ({{$e.FirstKillWins}}/{{$e.FirstKillDecided}}).</p>
+        </div>
+        <div>
+          <h3>First wizard kill</h3>
+          <div class="barbox">
+            <div class="bar">
+              <span class="seg a" style="width:{{bar $e.FirstWizardKillA (sub $e.Games $e.NoFirstWizardKill)}}%"></span>
+              <span class="seg b" style="width:{{bar $e.FirstWizardKillB (sub $e.Games $e.NoFirstWizardKill)}}%"></span>
+            </div>
+            <div class="legend">
+              <span><span class="dot a"></span>Player A {{$e.FirstWizardKillA}}</span>
+              <span><span class="dot b"></span>Player B {{$e.FirstWizardKillB}}</span>
+              <span>none {{$e.NoFirstWizardKill}}</span>
+            </div>
+          </div>
+          <p class="note">Average first wizard kill at ply {{avg $e.FirstWizardPlies (sub $e.Games $e.NoFirstWizardKill)}}. The side that got it won {{pct $e.FirstWizardWins $e.FirstWizardDecided}} of decided games ({{$e.FirstWizardWins}}/{{$e.FirstWizardDecided}}).</p>
+        </div>
+      </div>
+
+      <div class="two" style="margin-top:16px">
+        <div>
+          <h3>Survivors at the end <span class="muted">(avg per game)</span></h3>
+          <table class="grid compact">
+            <thead><tr><th>Piece</th><th class="num a">Player A</th><th class="num b">Player B</th></tr></thead>
+            <tbody>
+            {{range $t := .PieceTypes}}
+              <tr>
+                <td><span class="identity"><svg class="piece"><use href="#pc-{{$t}}"></use></svg>{{$t}}</span></td>
+                <td class="num">{{avg (index $e.ASurvivors $t) $e.Games}}</td>
+                <td class="num">{{avg (index $e.BSurvivors $t) $e.Games}}</td>
+              </tr>
+            {{end}}
+              <tr><td>Tokens</td><td class="num">{{avg $e.ATokens $e.Games}}</td><td class="num">{{avg $e.BTokens $e.Games}}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h3>Game length</h3>
+          {{range .PlyBuckets}}
+            {{if .Games}}
+            <div class="bucket">
+              <div class="bucket-label">{{.Label}}</div>
+              <div class="bucket-track">
+                <div class="bar" style="width:{{bar .Games $.MaxBucketGames}}%">
+                  <span class="seg a" style="width:{{bar .AWin .Games}}%"></span>
+                  <span class="seg b" style="width:{{bar .BWin .Games}}%"></span>
+                  <span class="seg d" style="width:{{bar .Draw .Games}}%"></span>
+                </div>
+              </div>
+              <div class="bucket-meta">{{.Games}} games · A {{pct .AWin .Games}} · B {{pct .BWin .Games}}</div>
+            </div>
+            {{end}}
+          {{end}}
+          <p class="note">Win split by game length. A side that only wins short (or long) games is a first-move/tempo signal.</p>
+        </div>
+      </div>
+    {{else}}
+      <p class="note">No endgame data in this file yet.</p>
+    {{end}}
+  </div>
+</details>
+
+<details class="card" open>
+  <summary><h2>Matchups</h2><span class="muted">{{len .Pairs}} pairs</span></summary>
+  <div class="body">
+  {{if .Pairs}}
+    {{range .Pairs}}
+    <details class="pair" data-pair="{{.Key}}">
+      <summary>
+        <span class="pair-title">{{.A}} <span class="muted">vs</span> {{.B}}</span>
+        <span class="pair-meta">{{.Stats.Games}} games · engine {{.Stats.AWin}} / {{.Stats.BWin}} / draw {{.Stats.Draw}}</span>
+        <span class="badge {{verdictClass .Stats.Sides}}">{{verdict .Stats.Sides}}</span>
+      </summary>
+      <div class="pair-body">
+        <div class="pair-sides">
+          <span>Player A <strong class="a">{{.Stats.Sides.AWin}}</strong> · {{ci .Stats.Sides.AWin .Stats.Sides.Games}}</span>
+          <span>Player B <strong class="b">{{.Stats.Sides.BWin}}</strong> · {{ci .Stats.Sides.BWin .Stats.Sides.Games}}</span>
+          <span>draw {{.Stats.Sides.Draw}}</span>
+          <span>errors {{.Stats.Error}}</span>
+        </div>
+        <div class="bar" style="margin:2px 0 12px">
+          <span class="seg a" style="width:{{bar .Stats.Sides.AWin .Stats.Sides.Games}}%"></span>
+          <span class="seg b" style="width:{{bar .Stats.Sides.BWin .Stats.Sides.Games}}%"></span>
+          <span class="seg d" style="width:{{bar .Stats.Sides.Draw .Stats.Sides.Games}}%"></span>
+        </div>
+        {{template "sideTable" .Stats.BySide}}
+        {{if .Stats.Endgame.Games}}
+        <p class="note">
+          Avg length {{avg .Stats.Endgame.Plies .Stats.Endgame.Games}} plies ·
+          stalemates {{pct .Stats.Endgame.Stalemates .Stats.Endgame.Games}} ·
+          first blood A {{.Stats.Endgame.FirstKillA}} / B {{.Stats.Endgame.FirstKillB}} ·
+          first-kill side won {{pct .Stats.Endgame.FirstKillWins .Stats.Endgame.FirstKillDecided}}
+        </p>
+        {{end}}
+        {{if .Stats.ByEngine}}
+        <h3>Engines in this pair</h3>
+        <table class="grid compact sortable">
+          <thead><tr><th data-sort="text">Engine</th><th class="num" data-sort="num">Games</th><th class="num" data-sort="num">W</th><th class="num" data-sort="num">D</th><th class="num" data-sort="num">L</th><th class="num" data-sort="num">Score</th></tr></thead>
+          <tbody>
+          {{range $id, $pe := .Stats.ByEngine}}
+            <tr><td>{{$id}}</td><td class="num">{{$pe.Games}}</td><td class="num">{{$pe.Wins}}</td><td class="num">{{$pe.Draws}}</td><td class="num">{{$pe.Losses}}</td><td class="num">{{score $pe.Wins $pe.Draws $pe.Games}}</td></tr>
+          {{end}}
+          </tbody>
+        </table>
+        {{end}}
+      </div>
+    </details>
+    {{end}}
+  {{else}}
+    <p class="note">No pairs in this file yet.</p>
+  {{end}}
+  </div>
+</details>
+
+<details class="card">
+  <summary><h2>Events</h2><span class="muted">buffs, nerfs, cleanses, kills</span></summary>
+  <div class="body">
+    <div class="two">
+      <div>
+        <h3>Buffs</h3>
+        {{$max := maxTotals .Overall.Buffs}}
+        <table class="grid compact">
+          <thead><tr><th>Piece</th><th></th><th class="num">Total</th><th class="num">Avg/game</th></tr></thead>
+          <tbody>
+          {{range $t := .PieceTypes}}
+            <tr>
+              <td><span class="identity"><svg class="piece"><use href="#pc-{{$t}}"></use></svg>{{$t}}</span></td>
+              <td><div class="minibar g"><span style="width:{{bar (index $.Overall.Buffs $t) $max}}%"></span></div></td>
+              <td class="num">{{index $.Overall.Buffs $t}}</td>
+              <td class="num">{{avg (index $.Overall.Buffs $t) $.Overall.Games}}</td>
+            </tr>
+          {{end}}
+          </tbody>
+        </table>
+        <h3>Nerfs</h3>
+        {{$max := maxTotals .Overall.Nerfs}}
+        <table class="grid compact">
+          <thead><tr><th>Piece</th><th></th><th class="num">Total</th><th class="num">Avg/game</th></tr></thead>
+          <tbody>
+          {{range $t := .PieceTypes}}
+            <tr>
+              <td><span class="identity"><svg class="piece"><use href="#pc-{{$t}}"></use></svg>{{$t}}</span></td>
+              <td><div class="minibar r"><span style="width:{{bar (index $.Overall.Nerfs $t) $max}}%"></span></div></td>
+              <td class="num">{{index $.Overall.Nerfs $t}}</td>
+              <td class="num">{{avg (index $.Overall.Nerfs $t) $.Overall.Games}}</td>
+            </tr>
+          {{end}}
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h3>Cleanses</h3>
+        {{$max := maxTotals .Overall.Cleanses}}
+        <table class="grid compact">
+          <thead><tr><th>Piece</th><th></th><th class="num">Total</th><th class="num">Avg/game</th></tr></thead>
+          <tbody>
+          {{range $t := .PieceTypes}}
+            <tr>
+              <td><span class="identity"><svg class="piece"><use href="#pc-{{$t}}"></use></svg>{{$t}}</span></td>
+              <td><div class="minibar g"><span style="width:{{bar (index $.Overall.Cleanses $t) $max}}%"></span></div></td>
+              <td class="num">{{index $.Overall.Cleanses $t}}</td>
+              <td class="num">{{avg (index $.Overall.Cleanses $t) $.Overall.Games}}</td>
+            </tr>
+          {{end}}
+          </tbody>
+        </table>
+        <h3>Kills by victim</h3>
+        {{$max := maxTotals .Overall.Kills.ByVictim}}
+        <table class="grid compact">
+          <thead><tr><th>Piece</th><th></th><th class="num">Total</th><th class="num">Avg/game</th></tr></thead>
+          <tbody>
+          {{range $t := .PieceTypes}}
+            <tr>
+              <td><span class="identity"><svg class="piece"><use href="#pc-{{$t}}"></use></svg>{{$t}}</span></td>
+              <td><div class="minibar"><span style="width:{{bar (index $.Overall.Kills.ByVictim $t) $max}}%"></span></div></td>
+              <td class="num">{{index $.Overall.Kills.ByVictim $t}}</td>
+              <td class="num">{{avg (index $.Overall.Kills.ByVictim $t) $.Overall.Games}}</td>
+            </tr>
+          {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h3>Kills by attacker → victim</h3>
+    {{$mx := maxMatrix .Overall.Kills.ByAttacker}}
+    <table class="grid matrix compact">
+      <thead>
+        <tr>
+          <th>attacker \ victim</th>
+          {{range $t := .PieceTypes}}<th><span class="identity"><svg class="piece"><use href="#pc-{{$t}}"></use></svg>{{$t}}</span></th>{{end}}
+        </tr>
+      </thead>
+      <tbody>
+      {{range $atk := .PieceTypes}}
+        <tr>
+          <th><span class="identity"><svg class="piece"><use href="#pc-{{$atk}}"></use></svg>{{$atk}}</span></th>
+          {{range $vic := $.PieceTypes}}
+            {{$v := index (index $.Overall.Kills.ByAttacker $atk) $vic}}
+            <td class="num heat" style="background:rgba(122,162,255,{{heat $v $mx}})">{{$v}}</td>
+          {{end}}
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+    <p class="note">A single buff/nerf/cleanse can be counted every time it is cast. Kills are captures and shots that actually removed a piece.</p>
+  </div>
+</details>
+
+{{if .Engines}}
+<details class="card">
+  <summary><h2>Per-engine events</h2><span class="muted">aggregated from all pairs in this file</span></summary>
+  <div class="body">
+    <table class="grid sortable">
+      <thead><tr><th data-sort="text">Engine</th><th class="num" data-sort="num">Games</th><th class="num" data-sort="num">Kills</th><th class="num" data-sort="num">Kills/g</th><th class="num" data-sort="num">Buffs</th><th class="num" data-sort="num">Nerfs</th><th class="num" data-sort="num">Cleanses</th><th class="num" data-sort="num">Spells/g</th></tr></thead>
+      <tbody>
+      {{range .Engines}}
+        <tr>
+          <td><strong>{{.Name}}</strong> <span class="muted">{{.ID}}</span></td>
+          <td class="num">{{.Events.Games}}</td>
+          <td class="num">{{sumMap .Events.Kills.ByVictim}}</td>
+          <td class="num">{{avg (sumMap .Events.Kills.ByVictim) .Events.Games}}</td>
+          <td class="num">{{sumMap .Events.Buffs}}</td>
+          <td class="num">{{sumMap .Events.Nerfs}}</td>
+          <td class="num">{{sumMap .Events.Cleanses}}</td>
+          <td class="num">{{avg (add (sumMap .Events.Buffs) (add (sumMap .Events.Nerfs) (sumMap .Events.Cleanses))) .Events.Games}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+    <p class="note">Includes stats-only games (unlike the Elo table), because it is aggregated from the pair records.</p>
+  </div>
+</details>
+{{end}}
+
+{{if .Recent}}
+<details class="card">
+  <summary><h2>Recent runs</h2><span class="muted">last {{len .Recent}}</span></summary>
+  <div class="body">
+    <table class="grid sortable">
+      <thead><tr><th data-sort="text">When</th><th data-sort="text">Pair</th><th class="num" data-sort="num">Games</th><th class="num" data-sort="num">Engine</th><th class="num" data-sort="num">Side A</th><th class="num" data-sort="num">Side B</th><th class="num" data-sort="num">Draw</th><th class="num" data-sort="num">Took</th><th class="num" data-sort="num">Per game</th><th data-sort="num">Mode</th></tr></thead>
+      <tbody>
+      {{range .Recent}}
+        <tr>
+          <td>{{date .At}}</td>
+          <td>{{.A}} <span class="muted">vs</span> {{.B}}</td>
+          <td class="num">{{.Games}}</td>
+          <td class="num">{{.AWin}} / {{.BWin}} / {{.Draw}}</td>
+          <td class="num a">{{.Sides.AWin}}</td>
+          <td class="num b">{{.Sides.BWin}}</td>
+          <td class="num">{{.Sides.Draw}}</td>
+          <td class="num">{{dur .TookMs}}</td>
+          <td class="num">{{avgDur .TookMs .Games}}</td>
+          <td>{{if .StatsOnly}}<span class="badge stats">stats only</span>{{else}}<span class="muted">rated</span>{{end}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</details>
+{{end}}
+
+{{if .BestMoves}}
+<details class="card" open>
+  <summary>
+    <h2>Game-changing move</h2>
+    <span class="muted">{{len .BestMoves}} highlighted{{with .BestMoveConfig}} · {{.Games}} decisive games · reference {{.Engine}} depth {{.Depth}}{{end}}</span>
+  </summary>
+  <div class="body">
+    {{with index .BestMoves 0}}
+    <div class="move-feature">
+      <div class="move-boards">
+        <div><div class="move-board-label">Before</div>{{board .Before .Action}}</div>
+        <div><div class="move-board-label">After</div>{{boardAfter .After}}</div>
+      </div>
+      <div class="move-side">
+        <span class="badge ok">#1 game-changing move</span>
+        {{if .Turnaround}}<span class="badge warn">turnaround</span>{{end}}
+        <h3>{{.Label}}</h3>
+        <div class="muted">Game {{.Game}} · ply {{.Ply}} · {{.Engine}} ({{.Mover}} to move) · winner {{.Winner}}</div>
+        <div class="move-swing">{{swingText .EvalAfter .Swing}}</div>
+        <div class="sub">eval swing {{eval .EvalBefore}} → {{eval .EvalAfter}}</div>
+        <div class="move-metrics">
+          <div class="move-metric"><div class="k">Eval before</div><div class="v">{{eval .EvalBefore}}</div></div>
+          <div class="move-metric"><div class="k">Eval after</div><div class="v">{{eval .EvalAfter}}</div></div>
+          <div class="move-metric"><div class="k">Uniqueness</div><div class="v">{{.Uniqueness}}</div></div>
+          <div class="move-metric"><div class="k">Second best</div><div class="v">{{.SecondBest}}</div></div>
+        </div>
+        <p class="note">Phase {{.Phase}} · tokens A {{.TokensA}} / B {{.TokensB}} · {{.Pair}}</p>
+      </div>
+    </div>
+    {{end}}
+
+    {{if gt (len .BestMoves) 1}}
+    <h3>Top candidates</h3>
+    {{range $i, $m := .BestMoves}}{{if $i}}
+    <details class="pair">
+      <summary>
+        <span class="pair-title">#{{$m.Rank}} {{$m.Label}}</span>
+        <span class="pair-meta">game {{$m.Game}} · ply {{$m.Ply}} · {{$m.Engine}} · winner {{$m.Winner}}</span>
+        <span class="badge">swing {{swingText $m.EvalAfter $m.Swing}}</span>
+      </summary>
+      <div class="pair-body">
+        <div class="move-boards">
+          <div><div class="move-board-label">Before</div>{{board $m.Before $m.Action}}</div>
+          <div><div class="move-board-label">After</div>{{boardAfter $m.After}}</div>
+        </div>
+        <p class="note">eval {{eval $m.EvalBefore}} → {{eval $m.EvalAfter}} · uniqueness {{$m.Uniqueness}} · second best {{$m.SecondBest}} · phase {{$m.Phase}} · tokens A {{$m.TokensA}} / B {{$m.TokensB}}</p>
+      </div>
+    </details>
+    {{end}}{{end}}
+    {{end}}
+
+    {{with .BestMoveConfig}}
+    <p class="note">{{.Candidates}} winner moves evaluated from {{.Games}} decisive games; reference {{.Engine}} at depth {{.Depth}}. Only moves by the eventual winner are ranked, and the final move is excluded.</p>
+    {{end}}
+  </div>
+</details>
+{{end}}
+
+{{if .Engines}}
+<details class="card" open>
+  <summary><h2>Elo ranking</h2><span class="muted">(snapshot, not changed by stats-only runs)</span></summary>
+  <div class="body">
+    <table class="grid sortable">
+      <thead><tr><th data-sort="num">#</th><th data-sort="text">Engine</th><th class="num" data-sort="num">Elo</th><th class="num" data-sort="num">Games</th><th class="num" data-sort="num">W</th><th class="num" data-sort="num">D</th><th class="num" data-sort="num">L</th><th data-sort="num">Win rate</th></tr></thead>
+      <tbody>
+      {{range $i, $e := .Engines}}
+        <tr>
+          <td>{{add $i 1}}</td>
+          <td><strong>{{$e.Name}}</strong> <span class="muted">{{$e.ID}}</span></td>
+          <td class="num">{{printf "%.0f" $e.Elo}}</td>
+          <td class="num">{{$e.Games}}</td>
+          <td class="num">{{$e.Wins}}</td>
+          <td class="num">{{$e.Draws}}</td>
+          <td class="num">{{$e.Losses}}</td>
+          <td><div class="minibar"><span style="width:{{bar $e.Wins $e.Games}}%"></span></div><span class="muted">{{pct $e.Wins $e.Games}}</span></td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+    <p class="note">Elo and W/D/L mirror the ranking file. Stats-only runs are deliberately excluded from this table.</p>
+  </div>
+</details>
+{{end}}
+
+<footer>
+  <strong>Statistics only.</strong> This report is a balance-analysis artifact, not training data and not an engine input.
+  Side stats count finished games; errors and stats-only runs are labelled. Generated from <code>{{.Source}}</code>.
+</footer>
+</div>
+
+<script>
+(function(){
+  document.querySelectorAll('[data-expand]').forEach(function(b){
+    b.addEventListener('click',function(){document.querySelectorAll('details').forEach(function(d){d.open=true;});});
+  });
+  document.querySelectorAll('[data-collapse]').forEach(function(b){
+    b.addEventListener('click',function(){document.querySelectorAll('details').forEach(function(d){d.open=false;});});
+  });
+  document.querySelectorAll('table.sortable').forEach(function(table){
+    var tbody=table.tBodies[0]; if(!tbody) return;
+    table.querySelectorAll('thead th').forEach(function(th,idx){
+      var kind=th.getAttribute('data-sort'); if(!kind) return;
+      th.classList.add('sort');
+      var asc=true;
+      th.addEventListener('click',function(){
+        var rows=Array.prototype.slice.call(tbody.rows);
+        rows.sort(function(a,b){
+          var x=a.cells[idx]?a.cells[idx].textContent.trim():'';
+          var y=b.cells[idx]?b.cells[idx].textContent.trim():'';
+          if(kind==='num'){
+            var nx=parseFloat(x.replace(/[^0-9.+-]/g,''))||0;
+            var ny=parseFloat(y.replace(/[^0-9.+-]/g,''))||0;
+            return asc?nx-ny:ny-nx;
+          }
+          return asc?x.localeCompare(y):y.localeCompare(x);
+        });
+        rows.forEach(function(r){tbody.appendChild(r);});
+        asc=!asc;
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>
+
+{{define "sideTable"}}
+{{$a := index . "A"}}{{$b := index . "B"}}
+{{if $a.Games}}
+<table class="grid compact">
+  <thead><tr><th>Metric</th><th class="num a">Player A</th><th class="num b">Player B</th><th class="num">A / game</th><th class="num">B / game</th></tr></thead>
+  <tbody>
+    <tr><td>Actions</td><td class="num">{{sumMap $a.Actions}}</td><td class="num">{{sumMap $b.Actions}}</td><td class="num">{{avg (sumMap $a.Actions) $a.Games}}</td><td class="num">{{avg (sumMap $b.Actions) $b.Games}}</td></tr>
+    <tr><td>Moves</td><td class="num">{{add (index $a.Actions "move") (index $a.Actions "moveturn")}}</td><td class="num">{{add (index $b.Actions "move") (index $b.Actions "moveturn")}}</td><td class="num">{{avg (add (index $a.Actions "move") (index $a.Actions "moveturn")) $a.Games}}</td><td class="num">{{avg (add (index $b.Actions "move") (index $b.Actions "moveturn")) $b.Games}}</td></tr>
+    <tr><td>Captures</td><td class="num">{{index $a.Actions "capture"}}</td><td class="num">{{index $b.Actions "capture"}}</td><td class="num">{{avg (index $a.Actions "capture") $a.Games}}</td><td class="num">{{avg (index $b.Actions "capture") $b.Games}}</td></tr>
+    <tr><td>Shots</td><td class="num">{{index $a.Actions "shoot"}}</td><td class="num">{{index $b.Actions "shoot"}}</td><td class="num">{{avg (index $a.Actions "shoot") $a.Games}}</td><td class="num">{{avg (index $b.Actions "shoot") $b.Games}}</td></tr>
+    <tr><td>Casts</td><td class="num">{{index $a.Actions "cast"}}</td><td class="num">{{index $b.Actions "cast"}}</td><td class="num">{{avg (index $a.Actions "cast") $a.Games}}</td><td class="num">{{avg (index $b.Actions "cast") $b.Games}}</td></tr>
+    <tr class="sub"><td>↳ Buffs</td><td class="num">{{sumMap $a.Buffs}}</td><td class="num">{{sumMap $b.Buffs}}</td><td class="num">{{avg (sumMap $a.Buffs) $a.Games}}</td><td class="num">{{avg (sumMap $b.Buffs) $b.Games}}</td></tr>
+    <tr class="sub"><td>↳ Nerfs</td><td class="num">{{sumMap $a.Nerfs}}</td><td class="num">{{sumMap $b.Nerfs}}</td><td class="num">{{avg (sumMap $a.Nerfs) $a.Games}}</td><td class="num">{{avg (sumMap $b.Nerfs) $b.Games}}</td></tr>
+    <tr class="sub"><td>↳ Cleanses</td><td class="num">{{sumMap $a.Cleanses}}</td><td class="num">{{sumMap $b.Cleanses}}</td><td class="num">{{avg (sumMap $a.Cleanses) $a.Games}}</td><td class="num">{{avg (sumMap $b.Cleanses) $b.Games}}</td></tr>
+    <tr><td>Teleports</td><td class="num">{{index $a.Actions "teleport"}}</td><td class="num">{{index $b.Actions "teleport"}}</td><td class="num">{{avg (index $a.Actions "teleport") $a.Games}}</td><td class="num">{{avg (index $b.Actions "teleport") $b.Games}}</td></tr>
+    <tr><td>Swaps</td><td class="num">{{index $a.Actions "swap"}}</td><td class="num">{{index $b.Actions "swap"}}</td><td class="num">{{avg (index $a.Actions "swap") $a.Games}}</td><td class="num">{{avg (index $b.Actions "swap") $b.Games}}</td></tr>
+    <tr><td>Skips</td><td class="num">{{index $a.Actions "skip"}}</td><td class="num">{{index $b.Actions "skip"}}</td><td class="num">{{avg (index $a.Actions "skip") $a.Games}}</td><td class="num">{{avg (index $b.Actions "skip") $b.Games}}</td></tr>
+    <tr><td>Kills</td><td class="num">{{sumMap $a.Kills.ByVictim}}</td><td class="num">{{sumMap $b.Kills.ByVictim}}</td><td class="num">{{avg (sumMap $a.Kills.ByVictim) $a.Games}}</td><td class="num">{{avg (sumMap $b.Kills.ByVictim) $b.Games}}</td></tr>
+    <tr class="sub"><td>↳ wizard kills</td><td class="num">{{index $a.Kills.ByVictim "wizard"}}</td><td class="num">{{index $b.Kills.ByVictim "wizard"}}</td><td class="num">{{avg (index $a.Kills.ByVictim "wizard") $a.Games}}</td><td class="num">{{avg (index $b.Kills.ByVictim "wizard") $b.Games}}</td></tr>
+    <tr class="sub"><td>↳ cannon kills</td><td class="num">{{index $a.Kills.ByVictim "cannon"}}</td><td class="num">{{index $b.Kills.ByVictim "cannon"}}</td><td class="num">{{avg (index $a.Kills.ByVictim "cannon") $a.Games}}</td><td class="num">{{avg (index $b.Kills.ByVictim "cannon") $b.Games}}</td></tr>
+    <tr class="sub"><td>↳ pawn kills</td><td class="num">{{index $a.Kills.ByVictim "pawn"}}</td><td class="num">{{index $b.Kills.ByVictim "pawn"}}</td><td class="num">{{avg (index $a.Kills.ByVictim "pawn") $a.Games}}</td><td class="num">{{avg (index $b.Kills.ByVictim "pawn") $b.Games}}</td></tr>
+  </tbody>
+</table>
+{{else}}
+<p class="note">No per-side event data for this matchup yet.</p>
+{{end}}
+{{end}}

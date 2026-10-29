@@ -1,0 +1,10 @@
+bin/
+web/node_modules/
+web/screenshots/
+internal/webui/dist/assets/
+internal/webui/dist/
+*.exe
+.DS_Store
+
+# debug save files
+data/
